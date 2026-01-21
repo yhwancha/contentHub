@@ -1,50 +1,61 @@
-# [PROJECT_NAME] Constitution
-<!-- Example: Spec Constitution, TaskFlow Constitution, etc. -->
+ContentHub Constitution
 
-## Core Principles
+Core Principles
 
-### [PRINCIPLE_1_NAME]
-<!-- Example: I. Library-First -->
-[PRINCIPLE_1_DESCRIPTION]
-<!-- Example: Every feature starts as a standalone library; Libraries must be self-contained, independently testable, documented; Clear purpose required - no organizational-only libraries -->
+I. TypeScript-First (NON-NEGOTIABLE)
 
-### [PRINCIPLE_2_NAME]
-<!-- Example: II. CLI Interface -->
-[PRINCIPLE_2_DESCRIPTION]
-<!-- Example: Every library exposes functionality via CLI; Text in/out protocol: stdin/args → stdout, errors → stderr; Support JSON + human-readable formats -->
+Frontend and backend must be written in TypeScript. Shared types and schemas should be reused across the stack (DTOs, validators) to prevent drift.
 
-### [PRINCIPLE_3_NAME]
-<!-- Example: III. Test-First (NON-NEGOTIABLE) -->
-[PRINCIPLE_3_DESCRIPTION]
-<!-- Example: TDD mandatory: Tests written → User approved → Tests fail → Then implement; Red-Green-Refactor cycle strictly enforced -->
+II. Feed-First Ingestion (Respectful Collection)
 
-### [PRINCIPLE_4_NAME]
-<!-- Example: IV. Integration Testing -->
-[PRINCIPLE_4_DESCRIPTION]
-<!-- Example: Focus areas requiring integration tests: New library contract tests, Contract changes, Inter-service communication, Shared schemas -->
+Prefer official/public feeds (RSS) over HTML scraping when available. Minimize requests, use sane timeouts, retries with exponential backoff, and never cause undue load.
 
-### [PRINCIPLE_5_NAME]
-<!-- Example: V. Observability, VI. Versioning & Breaking Changes, VII. Simplicity -->
-[PRINCIPLE_5_DESCRIPTION]
-<!-- Example: Text I/O ensures debuggability; Structured logging required; Or: MAJOR.MINOR.BUILD format; Or: Start simple, YAGNI principles -->
+III. Metadata-Only Storage (Non-negotiable)
 
-## [SECTION_2_NAME]
-<!-- Example: Additional Constraints, Security Requirements, Performance Standards, etc. -->
+Store and display only metadata needed for discovery:
+	•	title
+	•	original link (or GeekNews link)
+	•	published time
+	•	source
+Do not copy full article bodies from third-party sites.
 
-[SECTION_2_CONTENT]
-<!-- Example: Technology stack requirements, compliance standards, deployment policies, etc. -->
+IV. Idempotent & Deduplicated Ingestion
 
-## [SECTION_3_NAME]
-<!-- Example: Development Workflow, Review Process, Quality Gates, etc. -->
+Every ingestion run must be idempotent: reruns must not create duplicates. Deduplication must be enforced at the database layer (unique constraint on stable identifiers such as RSS GUID and/or canonical link).
 
-[SECTION_3_CONTENT]
-<!-- Example: Code review requirements, testing gates, deployment approval process, etc. -->
+V. Configurable Scheduling (Interval as Data)
 
-## Governance
-<!-- Example: Constitution supersedes all other practices; Amendments require documentation, approval, migration plan -->
+Default ingestion interval is 3 hours, but must be configurable as a variable stored in the system (DB-backed setting). Interval changes should take effect without code changes; if cron can’t be updated dynamically, use a frequent tick + “last_run + interval” gate.
 
-[GOVERNANCE_RULES]
-<!-- Example: All PRs/reviews must verify compliance; Complexity must be justified; Use [GUIDANCE_FILE] for runtime development guidance -->
+⸻
 
-**Version**: [CONSTITUTION_VERSION] | **Ratified**: [RATIFICATION_DATE] | **Last Amended**: [LAST_AMENDED_DATE]
-<!-- Example: Version: 2.1.1 | Ratified: 2025-06-13 | Last Amended: 2025-07-16 -->
+Additional Constraints
+	•	Database: Postgres (recommended) with a proper migration workflow (Prisma recommended).
+	•	Pagination: API must support cursor-based pagination for infinite scrolling.
+	•	Attribution: UI must clearly attribute source and link out to the original.
+	•	Security: Never commit credentials. .claude/ must be in .gitignore. Avoid storing secrets in repo.
+	•	Rate Limits: Cap outbound fetch frequency, set timeouts, retry with backoff, and handle failures gracefully.
+
+⸻
+
+Development Workflow
+	•	Incremental delivery: Implement in small slices (ingestion → API → UI) and keep changes reviewable.
+	•	Quality gates:
+	•	Lint + format must pass.
+	•	Basic automated tests for RSS parsing and dedup logic are required.
+	•	Integration test coverage for “ingest → DB → API returns feed” is strongly preferred for MVP stability.
+	•	Observability:
+	•	Log each ingestion run: start/end, number of new/updated items, and errors.
+	•	Errors must not crash the service; failures should be reported and retried safely.
+
+⸻
+
+Governance
+	•	This Constitution supersedes other ad-hoc practices.
+	•	Any change that affects data collection, storage scope, or scheduling behavior must include:
+	1.	rationale,
+	2.	migration/compatibility plan (if needed),
+	3.	updated tests where applicable.
+	•	Security and “metadata-only” rules are non-negotiable.
+
+Version: 1.0.0 | Ratified: 2026-01-21 | Last Amended: 2026-01-21
