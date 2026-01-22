@@ -1,0 +1,34 @@
+{
+  "name": "contenthub",
+  "version": "1.0.0",
+  "private": true,
+  "workspaces": [
+    "backend",
+    "frontend",
+    "shared"
+  ],
+  "scripts": {
+    "dev": "concurrently \"pnpm --filter @contenthub/backend dev\" \"pnpm --filter @contenthub/frontend dev\"",
+    "dev:backend": "pnpm --filter @contenthub/backend dev",
+    "dev:frontend": "pnpm --filter @contenthub/frontend dev",
+    "build": "pnpm -r build",
+    "lint": "pnpm -r lint",
+    "format": "pnpm -r format",
+    "db:migrate": "pnpm --filter @contenthub/backend db:migrate",
+    "db:seed": "pnpm --filter @contenthub/backend db:seed",
+    "db:studio": "pnpm --filter @contenthub/backend db:studio"
+  },
+  "devDependencies": {
+    "@typescript-eslint/eslint-plugin": "^6.19.0",
+    "@typescript-eslint/parser": "^6.19.0",
+    "concurrently": "^8.2.2",
+    "eslint": "^8.56.0",
+    "eslint-plugin-react": "^7.33.2",
+    "eslint-plugin-react-hooks": "^4.6.0",
+    "prettier": "^3.2.4"
+  },
+  "packageManager": "pnpm@8.14.0",
+  "engines": {
+    "node": ">=20.0.0"
+  }
+}

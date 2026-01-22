@@ -1,0 +1,271 @@
+openapi: 3.1.0
+info:
+  title: ContentHub API
+  description: API for GeekNews feed aggregation service
+  version: 1.0.0
+  contact:
+    name: ContentHub
+servers:
+  - url: http://localhost:3000
+    description: Development server
+  - url: https://api.contenthub.example.com
+    description: Production server
+
+paths:
+  /api/articles:
+    get:
+      summary: List articles
+      description: |
+        Returns a paginated list of articles in reverse chronological order.
+        Uses cursor-based pagination for infinite scrolling support.
+      operationId: listArticles
+      tags:
+        - Articles
+      parameters:
+        - name: cursor
+          in: query
+          description: Pagination cursor from previous response
+          required: false
+          schema:
+            type: string
+            example: eyJwdWJsaXNoZWRBdCI6IjIwMjYtMDEtMjFUMTI6MDA6MDBaIiwiaWQiOiJhYmMxMjMifQ==
+        - name: limit
+          in: query
+          description: Number of articles to return (max 50)
+          required: false
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 50
+            default: 20
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ArticleListResponse'
+        '400':
+          description: Invalid request parameters
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /api/articles/{id}:
+    get:
+      summary: Get article by ID
+      description: Returns a single article by its unique identifier
+      operationId: getArticle
+      tags:
+        - Articles
+      parameters:
+        - name: id
+          in: path
+          description: Article UUID
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Article'
+        '404':
+          description: Article not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /api/settings:
+    get:
+      summary: Get all settings
+      description: Returns all system configuration settings
+      operationId: getSettings
+      tags:
+        - Settings
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SettingsResponse'
+
+  /api/settings/ingest-interval:
+    patch:
+      summary: Update ingestion interval
+      description: |
+        Updates the interval between automatic ingestion runs.
+        Changes take effect on the next scheduler tick.
+      operationId: updateIngestInterval
+      tags:
+        - Settings
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateIntervalRequest'
+      responses:
+        '200':
+          description: Successfully updated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Setting'
+        '400':
+          description: Invalid interval value
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+components:
+  schemas:
+    Article:
+      type: object
+      required:
+        - id
+        - source
+        - guid
+        - title
+        - url
+        - publishedAt
+        - fetchedAt
+        - createdAt
+        - updatedAt
+      properties:
+        id:
+          type: string
+          format: uuid
+          description: Unique article identifier
+          example: 550e8400-e29b-41d4-a716-446655440000
+        source:
+          type: string
+          description: Content source identifier
+          example: geeknews
+        guid:
+          type: string
+          description: RSS entry unique identifier
+          example: https://news.hada.io/topic?id=26022
+        title:
+          type: string
+          description: Article title
+          example: 메타 법무팀이 윤리적 의무를 저버렸다
+        url:
+          type: string
+          format: uri
+          description: GeekNews topic page URL
+          example: https://news.hada.io/topic?id=26022
+        publishedAt:
+          type: string
+          format: date-time
+          description: Original publication timestamp
+          example: 2026-01-22T06:33:08+09:00
+        fetchedAt:
+          type: string
+          format: date-time
+          description: When article was ingested
+          example: 2026-01-22T07:00:00Z
+        createdAt:
+          type: string
+          format: date-time
+          description: Record creation timestamp
+        updatedAt:
+          type: string
+          format: date-time
+          description: Record last update timestamp
+
+    ArticleListResponse:
+      type: object
+      required:
+        - articles
+        - hasMore
+      properties:
+        articles:
+          type: array
+          items:
+            $ref: '#/components/schemas/Article'
+        nextCursor:
+          type: string
+          nullable: true
+          description: Cursor for next page (null if no more pages)
+          example: eyJwdWJsaXNoZWRBdCI6IjIwMjYtMDEtMjFUMTI6MDA6MDBaIiwiaWQiOiJhYmMxMjMifQ==
+        hasMore:
+          type: boolean
+          description: Whether more articles are available
+
+    Setting:
+      type: object
+      required:
+        - key
+        - value
+        - updatedAt
+      properties:
+        key:
+          type: string
+          description: Setting identifier
+          example: ingest_interval_minutes
+        value:
+          type: string
+          description: Setting value
+          example: "180"
+        updatedAt:
+          type: string
+          format: date-time
+          description: Last modification timestamp
+
+    SettingsResponse:
+      type: object
+      required:
+        - settings
+      properties:
+        settings:
+          type: object
+          additionalProperties:
+            type: string
+          description: Key-value map of all settings
+          example:
+            ingest_interval_minutes: "180"
+
+    UpdateIntervalRequest:
+      type: object
+      required:
+        - minutes
+      properties:
+        minutes:
+          type: integer
+          minimum: 1
+          maximum: 10080
+          description: Ingestion interval in minutes (1 min to 1 week)
+          example: 180
+
+    ErrorResponse:
+      type: object
+      required:
+        - error
+        - message
+      properties:
+        error:
+          type: string
+          description: Error code
+          example: VALIDATION_ERROR
+        message:
+          type: string
+          description: Human-readable error message
+          example: Invalid cursor format
+        details:
+          type: object
+          additionalProperties: true
+          description: Additional error details
+
+tags:
+  - name: Articles
+    description: Article feed operations
+  - name: Settings
+    description: System configuration

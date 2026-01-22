@@ -1,0 +1,52 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model Article {
+  id          String   @id @default(uuid())
+  source      String   @default("geeknews")
+  guid        String   @unique
+  title       String
+  url         String
+  publishedAt DateTime @map("published_at")
+  fetchedAt   DateTime @map("fetched_at")
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  @@index([publishedAt(sort: Desc)])
+  @@index([source, publishedAt(sort: Desc)])
+  @@map("articles")
+}
+
+model Setting {
+  key       String   @id
+  value     String
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@map("settings")
+}
+
+enum IngestionStatus {
+  running
+  success
+  failed
+}
+
+model IngestionRun {
+  id           String          @id @default(uuid())
+  startedAt    DateTime        @map("started_at")
+  finishedAt   DateTime?       @map("finished_at")
+  status       IngestionStatus
+  newCount     Int             @default(0) @map("new_count")
+  updatedCount Int             @default(0) @map("updated_count")
+  errorMessage String?         @map("error_message")
+
+  @@index([startedAt(sort: Desc)])
+  @@index([status, startedAt(sort: Desc)])
+  @@map("ingestion_runs")
+}
